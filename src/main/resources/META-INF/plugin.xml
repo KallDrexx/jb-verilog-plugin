@@ -2,12 +2,6 @@
 <idea-plugin>
     <id>com.github.kalldrexx.jbverilogplugin</id>
     <name>Basic Verilog Support</name>
-    <description>
-        Adds very basic Verilog support to Intellij based editors. It supports syntax highlighting for
-        keywords and very basic code completion.
-
-        Mostly AI developed plugin intended as a free option for those who need it.
-    </description>
     <vendor url="https://github.com/KallDrexx/jb-verilog-plugin">KallDrexx</vendor>
 
     <depends>com.intellij.modules.platform</depends>
