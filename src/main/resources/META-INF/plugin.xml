@@ -11,5 +11,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow factoryClass="com.github.kalldrexx.jbverilogplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
         <postStartupActivity implementation="com.github.kalldrexx.jbverilogplugin.startup.MyProjectActivity" />
+        
+        <!-- Verilog Language Support -->
+        <fileType name="Verilog" implementationClass="com.github.kalldrexx.jbverilogplugin.VerilogFileType" fieldName="INSTANCE" language="Verilog" extensions="v;vh;sv;svh"/>
+        <lang.syntaxHighlighterFactory language="Verilog" implementationClass="com.github.kalldrexx.jbverilogplugin.VerilogSyntaxHighlighterFactory"/>
     </extensions>
 </idea-plugin>
