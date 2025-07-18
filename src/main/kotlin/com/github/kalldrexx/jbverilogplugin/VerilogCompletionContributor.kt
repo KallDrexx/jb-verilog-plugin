@@ -4,6 +4,8 @@ import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.util.ProcessingContext
+import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 
 class VerilogCompletionContributor : CompletionContributor() {
     
@@ -50,6 +52,7 @@ class VerilogCompletionContributor : CompletionContributor() {
                     context: ProcessingContext,
                     result: CompletionResultSet
                 ) {
+                    // Add keywords
                     VERILOG_KEYWORDS.forEach { keyword ->
                         result.addElement(
                             LookupElementBuilder.create(keyword)
@@ -58,8 +61,81 @@ class VerilogCompletionContributor : CompletionContributor() {
                                 .withCaseSensitivity(false)
                         )
                     }
+                    
+                    // Add wire and reg identifiers
+                    val file = parameters.originalFile
+                    val identifiers = collectWireAndRegIdentifiers(file)
+                    identifiers.forEach { identifier ->
+                        result.addElement(
+                            LookupElementBuilder.create(identifier.name)
+                                .withTypeText(identifier.type)
+                                .withIcon(null)
+                        )
+                    }
                 }
             }
         )
     }
+    
+    private fun collectWireAndRegIdentifiers(file: PsiElement): List<VerilogIdentifier> {
+        val identifiers = mutableListOf<VerilogIdentifier>()
+        val text = file.text
+        
+        // Parse wire declarations: wire [width] name1, name2, ...;
+        val wirePattern = Regex("""wire\s*(?:\[[^\]]*\])?\s*([^;]+);""")
+        wirePattern.findAll(text).forEach { match ->
+            val declarations = match.groupValues[1]
+            extractIdentifierNames(declarations).forEach { name ->
+                identifiers.add(VerilogIdentifier(name, "wire"))
+            }
+        }
+        
+        // Parse reg declarations: reg [width] name1, name2, ...;
+        val regPattern = Regex("""reg\s*(?:\[[^\]]*\])?\s*([^;]+);""")
+        regPattern.findAll(text).forEach { match ->
+            val declarations = match.groupValues[1]
+            extractIdentifierNames(declarations).forEach { name ->
+                identifiers.add(VerilogIdentifier(name, "reg"))
+            }
+        }
+        
+        // Parse input/output wire declarations: input wire [width] name1, name2, ...;
+        val inputWirePattern = Regex("""input\s+wire\s*(?:\[[^\]]*\])?\s*([^;,)]+)""")
+        inputWirePattern.findAll(text).forEach { match ->
+            val name = match.groupValues[1].trim()
+            if (name.isNotBlank()) {
+                identifiers.add(VerilogIdentifier(name, "input wire"))
+            }
+        }
+        
+        val outputWirePattern = Regex("""output\s+wire\s*(?:\[[^\]]*\])?\s*([^;,)]+)""")
+        outputWirePattern.findAll(text).forEach { match ->
+            val name = match.groupValues[1].trim()
+            if (name.isNotBlank()) {
+                identifiers.add(VerilogIdentifier(name, "output wire"))
+            }
+        }
+        
+        // Parse output reg declarations: output reg [width] name1, name2, ...;
+        val outputRegPattern = Regex("""output\s+reg\s*(?:\[[^\]]*\])?\s*([^;,)]+)""")
+        outputRegPattern.findAll(text).forEach { match ->
+            val name = match.groupValues[1].trim()
+            if (name.isNotBlank()) {
+                identifiers.add(VerilogIdentifier(name, "output reg"))
+            }
+        }
+        
+        return identifiers.distinctBy { it.name }
+    }
+    
+    private fun extractIdentifierNames(declarations: String): List<String> {
+        return declarations.split(',').mapNotNull { part ->
+            val trimmed = part.trim()
+            // Remove any assignment (= value) and extract just the identifier
+            val name = trimmed.split('=')[0].trim()
+            if (name.matches(Regex("[a-zA-Z_][a-zA-Z0-9_]*"))) name else null
+        }
+    }
 }
+
+data class VerilogIdentifier(val name: String, val type: String)
